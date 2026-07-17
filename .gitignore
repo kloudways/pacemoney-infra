@@ -1,0 +1,40 @@
+# Terraform runtime (state and plan files contain plaintext secrets after apply)
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variable files (commit *.tfvars.example templates instead)
+*.tfvars
+!*.tfvars.example
+
+# Ansible secrets
+*.vault_pass
+.vault_password_file
+
+# Credentials and keys
+*.pem
+*.p12
+*.pfx
+kubeconfig
+*.kubeconfig
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo

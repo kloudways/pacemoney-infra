@@ -1,0 +1,12 @@
+title = "pacemoney-infra gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore Terraform state and plan output (never committed, but scanned if present)"
+paths = [
+  ".*\\.tfstate",
+  ".*\\.tfstate\\.backup",
+  ".*\\.tfplan",
+]
