@@ -102,6 +102,8 @@ resource "aws_iam_role_policy" "jenkins" {
         Resource = [
           "arn:aws:s3:::kloudways-pacemoney-tfstate",
           "arn:aws:s3:::kloudways-pacemoney-tfstate/*",
+          "arn:aws:s3:::pacemoney-kops-state",
+          "arn:aws:s3:::pacemoney-kops-state/*",
         ]
       },
       {
