@@ -136,12 +136,20 @@ resource "aws_instance" "jenkins" {
 }
 
 resource "aws_eip" "jenkins" {
-  instance   = aws_instance.jenkins.id
-  domain     = "vpc"
+  instance = aws_instance.jenkins.id
+  domain   = "vpc"
 
   depends_on = [aws_internet_gateway.main]
 
   tags = {
     Name = "${local.name_prefix}-jenkins-eip"
   }
+}
+
+resource "aws_route53_record" "jenkins" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "jenkins.${var.domain_name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.jenkins.public_ip]
 }

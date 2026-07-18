@@ -8,6 +8,11 @@ output "jenkins_public_ip" {
   value       = aws_eip.jenkins.public_ip
 }
 
+output "jenkins_url" {
+  description = "URL of the Jenkins UI"
+  value       = "http://jenkins.${var.domain_name}:8080"
+}
+
 output "ecr_repository_url" {
   description = "URL of the ECR repository for pushing and pulling application images"
   value       = aws_ecr_repository.main.repository_url
