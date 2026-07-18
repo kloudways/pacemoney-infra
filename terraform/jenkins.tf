@@ -109,6 +109,7 @@ resource "aws_iam_role_policy" "jenkins" {
       {
         Effect = "Allow"
         Action = [
+          "ec2:DescribeAvailabilityZones",
           "ec2:DescribeInstances",
           "ec2:DescribeRegions",
         ]
