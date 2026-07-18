@@ -1,0 +1,122 @@
+---
+# kubectl
+- name: Add Kubernetes apt repository key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://pkgs.k8s.io/core:/stable:/{{ kubectl_minor_version }}/deb/Release.key | gpg --dearmor -o /usr/share/keyrings/kubernetes-apt-keyring.gpg
+    creates: /usr/share/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubectl_minor_version }}/deb/ /"
+    filename: kubernetes
+    state: present
+
+- name: Install kubectl
+  ansible.builtin.apt:
+    name: kubectl
+    state: present
+    update_cache: true
+
+# Helm
+- name: Download Helm archive
+  ansible.builtin.get_url:
+    url: https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz
+    dest: /tmp/helm.tar.gz
+    mode: '0644'
+  when: not ansible_check_mode
+
+- name: Extract Helm archive
+  ansible.builtin.unarchive:
+    src: /tmp/helm.tar.gz
+    dest: /tmp/
+    remote_src: true
+
+- name: Install Helm binary
+  ansible.builtin.copy:
+    src: /tmp/linux-amd64/helm
+    dest: /usr/local/bin/helm
+    mode: '0755'
+    remote_src: true
+
+- name: Remove Helm archive and extracted directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/helm.tar.gz
+    - /tmp/linux-amd64
+
+# Kops
+- name: Download Kops binary
+  ansible.builtin.get_url:
+    url: https://github.com/kubernetes/kops/releases/download/v{{ kops_version }}/kops-linux-amd64
+    dest: /usr/local/bin/kops
+    mode: '0755'
+
+# Trivy
+- name: Add Trivy apt repository key
+  ansible.builtin.shell:
+    cmd: wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+    creates: /usr/share/keyrings/trivy.gpg
+
+- name: Add Trivy apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+    filename: trivy
+    state: present
+
+- name: Install Trivy
+  ansible.builtin.apt:
+    name: trivy
+    state: present
+    update_cache: true
+
+# AWS CLI v2
+- name: Download AWS CLI installer
+  ansible.builtin.get_url:
+    url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    dest: /tmp/awscliv2.zip
+    mode: '0644'
+
+- name: Unzip AWS CLI installer
+  ansible.builtin.unarchive:
+    src: /tmp/awscliv2.zip
+    dest: /tmp/
+    remote_src: true
+
+- name: Install AWS CLI
+  ansible.builtin.command:
+    cmd: /tmp/aws/install
+    creates: /usr/local/bin/aws
+
+- name: Remove AWS CLI installer
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/awscliv2.zip
+    - /tmp/aws
+
+# SonarQube scanner
+- name: Download SonarQube scanner
+  ansible.builtin.get_url:
+    url: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-{{ sonar_scanner_version }}-linux.zip
+    dest: /tmp/sonar-scanner.zip
+    mode: '0644'
+
+- name: Unzip SonarQube scanner
+  ansible.builtin.unarchive:
+    src: /tmp/sonar-scanner.zip
+    dest: /opt/
+    remote_src: true
+
+- name: Create sonar-scanner symlink
+  ansible.builtin.file:
+    src: /opt/sonar-scanner-{{ sonar_scanner_version }}-linux/bin/sonar-scanner
+    dest: /usr/local/bin/sonar-scanner
+    state: link
+
+- name: Remove SonarQube scanner zip
+  ansible.builtin.file:
+    path: /tmp/sonar-scanner.zip
+    state: absent

@@ -1,3 +1,13 @@
+output "jenkins_instance_id" {
+  description = "EC2 instance ID of the Jenkins server"
+  value       = aws_instance.jenkins.id
+}
+
+output "jenkins_public_ip" {
+  description = "Public IP of the Jenkins server (use for browser access and Ansible inventory)"
+  value       = aws_eip.jenkins.public_ip
+}
+
 output "ecr_repository_url" {
   description = "URL of the ECR repository for pushing and pulling application images"
   value       = aws_ecr_repository.main.repository_url

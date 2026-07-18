@@ -1,0 +1,54 @@
+---
+- name: Remove stale Jenkins key and source files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /usr/share/keyrings/jenkins-keyring.asc
+    - /usr/share/keyrings/jenkins-keyring.gpg
+    - /tmp/jenkins-keyring.asc
+    - /etc/apt/sources.list.d/jenkins.list
+
+- name: Add Jenkins apt repository key via keyserver
+  ansible.builtin.shell:
+    cmd: >
+      gpg --batch --keyserver keyserver.ubuntu.com --recv-keys 7198F4B714ABFC68 &&
+      gpg --export 7198F4B714ABFC68 | gpg --dearmor -o /usr/share/keyrings/jenkins-keyring.gpg
+    creates: /usr/share/keyrings/jenkins-keyring.gpg
+
+- name: Add Jenkins apt repository source file
+  ansible.builtin.copy:
+    content: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/\n"
+    dest: /etc/apt/sources.list.d/jenkins.list
+    mode: '0644'
+
+- name: Update apt cache after adding Jenkins repository
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+
+- name: Enable and start Jenkins service
+  ansible.builtin.systemd:
+    name: jenkins
+    enabled: true
+    state: started
+
+- name: Wait for Jenkins to be reachable on port 8080
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 8080
+    delay: 15
+    timeout: 120
+
+- name: Fetch initial admin password
+  ansible.builtin.slurp:
+    src: /var/lib/jenkins/secrets/initialAdminPassword
+  register: jenkins_initial_password
+
+- name: Print initial admin password
+  ansible.builtin.debug:
+    msg: "Jenkins initial admin password: {{ jenkins_initial_password.content | b64decode | trim }}"

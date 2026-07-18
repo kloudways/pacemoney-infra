@@ -1,0 +1,5 @@
+---
+kubectl_minor_version: "v1.30"
+kops_version: "1.30.0"
+helm_version: "3.17.0"
+sonar_scanner_version: "5.0.1.3006"
