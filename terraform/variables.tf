@@ -4,6 +4,11 @@ variable "app_port" {
   default     = 8000
 }
 
+variable "app_elb_hostname" {
+  description = "ELB hostname created by the Kubernetes LoadBalancer service (copy from kubectl get svc)"
+  type        = string
+}
+
 variable "app_hostname" {
   description = "Full hostname for the application"
   type        = string

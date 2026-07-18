@@ -138,3 +138,11 @@ resource "aws_route_table_association" "isolated" {
   subnet_id      = aws_subnet.isolated[count.index].id
   route_table_id = aws_route_table.isolated.id
 }
+
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.app_hostname
+  type    = "CNAME"
+  ttl     = 300
+  records = [var.app_elb_hostname]
+}
