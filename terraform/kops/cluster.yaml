@@ -1,0 +1,85 @@
+apiVersion: kops.k8s.io/v1alpha2
+kind: Cluster
+metadata:
+  creationTimestamp: "2026-07-18T17:42:01Z"
+  name: pacemoney.k8s.local
+spec:
+  api:
+    loadBalancer:
+      class: Network
+      type: Public
+  authorization:
+    rbac: {}
+  channel: stable
+  cloudProvider: aws
+  configBase: s3://pacemoney-kops-state/pacemoney.k8s.local
+  etcdClusters:
+  - cpuRequest: 200m
+    etcdMembers:
+    - encryptedVolume: true
+      instanceGroup: control-plane-eu-west-2a
+      name: a
+    manager:
+      backupRetentionDays: 90
+    memoryRequest: 100Mi
+    name: main
+  - cpuRequest: 100m
+    etcdMembers:
+    - encryptedVolume: true
+      instanceGroup: control-plane-eu-west-2a
+      name: a
+    manager:
+      backupRetentionDays: 90
+    memoryRequest: 100Mi
+    name: events
+  iam:
+    allowContainerRegistry: true
+    legacy: false
+  kubelet:
+    anonymousAuth: false
+  kubernetesApiAccess:
+  - 0.0.0.0/0
+  - ::/0
+  kubernetesVersion: 1.36.2
+  networkCIDR: 10.1.0.0/16
+  networkID: vpc-01463f29b4e2113de
+  networking:
+    calico: {}
+  nonMasqueradeCIDR: 100.64.0.0/10
+  sshAccess:
+  - 0.0.0.0/0
+  - ::/0
+  subnets:
+  - cidr: 10.1.11.0/24
+    id: subnet-0b66b0028e20f0483
+    name: eu-west-2a
+    type: Private
+    zone: eu-west-2a
+  - cidr: 10.1.12.0/24
+    id: subnet-07a3a05e7748ee021
+    name: eu-west-2b
+    type: Private
+    zone: eu-west-2b
+  - cidr: 10.1.13.0/24
+    id: subnet-05b656fad3535c4f2
+    name: eu-west-2c
+    type: Private
+    zone: eu-west-2c
+  - cidr: 10.1.1.0/24
+    id: subnet-093912451675a2d80
+    name: utility-eu-west-2a
+    type: Utility
+    zone: eu-west-2a
+  - cidr: 10.1.2.0/24
+    id: subnet-0223f3fcc0bf77c83
+    name: utility-eu-west-2b
+    type: Utility
+    zone: eu-west-2b
+  - cidr: 10.1.3.0/24
+    id: subnet-0b9c4107759a993c4
+    name: utility-eu-west-2c
+    type: Utility
+    zone: eu-west-2c
+  topology:
+    dns:
+      type: None
