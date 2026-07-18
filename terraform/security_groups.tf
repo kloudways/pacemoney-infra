@@ -69,6 +69,14 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.app_node.id]
   }
 
+  ingress {
+    description = "PostgreSQL from Kops nodes"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
