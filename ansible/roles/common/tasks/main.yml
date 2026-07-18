@@ -20,4 +20,6 @@
       - software-properties-common
       - unzip
       - wget
+      - python3-venv
+      - python3-pip
     state: present
