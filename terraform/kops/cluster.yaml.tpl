@@ -16,7 +16,7 @@ spec:
   - cpuRequest: 200m
     etcdMembers:
     - encryptedVolume: true
-      instanceGroup: control-plane-eu-west-2a
+      instanceGroup: control-plane-${azs[0]}
       name: a
     manager:
       backupRetentionDays: 90
@@ -25,7 +25,7 @@ spec:
   - cpuRequest: 100m
     etcdMembers:
     - encryptedVolume: true
-      instanceGroup: control-plane-eu-west-2a
+      instanceGroup: control-plane-${azs[0]}
       name: a
     manager:
       backupRetentionDays: 90
@@ -40,8 +40,8 @@ spec:
   - 0.0.0.0/0
   - ::/0
   kubernetesVersion: 1.36.2
-  networkCIDR: 10.1.0.0/16
-  networkID: vpc-0a275ed0b5faf2b96
+  networkCIDR: ${vpc_cidr}
+  networkID: ${vpc_id}
   networking:
     calico: {}
   nonMasqueradeCIDR: 100.64.0.0/10
@@ -49,36 +49,36 @@ spec:
   - 0.0.0.0/0
   - ::/0
   subnets:
-  - cidr: 10.1.11.0/24
-    id: subnet-087dcefb507794436
-    name: eu-west-2a
+  - cidr: ${private_subnet_cidrs[0]}
+    id: ${private_subnet_ids[0]}
+    name: ${azs[0]}
     type: Private
-    zone: eu-west-2a
-  - cidr: 10.1.12.0/24
-    id: subnet-0688ae2357bdd88fa
-    name: eu-west-2b
+    zone: ${azs[0]}
+  - cidr: ${private_subnet_cidrs[1]}
+    id: ${private_subnet_ids[1]}
+    name: ${azs[1]}
     type: Private
-    zone: eu-west-2b
-  - cidr: 10.1.13.0/24
-    id: subnet-0a0193e1551fd287e
-    name: eu-west-2c
+    zone: ${azs[1]}
+  - cidr: ${private_subnet_cidrs[2]}
+    id: ${private_subnet_ids[2]}
+    name: ${azs[2]}
     type: Private
-    zone: eu-west-2c
-  - cidr: 10.1.1.0/24
-    id: subnet-056187950d024dd71
-    name: utility-eu-west-2a
+    zone: ${azs[2]}
+  - cidr: ${public_subnet_cidrs[0]}
+    id: ${public_subnet_ids[0]}
+    name: utility-${azs[0]}
     type: Utility
-    zone: eu-west-2a
-  - cidr: 10.1.2.0/24
-    id: subnet-0703ac302efac13b5
-    name: utility-eu-west-2b
+    zone: ${azs[0]}
+  - cidr: ${public_subnet_cidrs[1]}
+    id: ${public_subnet_ids[1]}
+    name: utility-${azs[1]}
     type: Utility
-    zone: eu-west-2b
-  - cidr: 10.1.3.0/24
-    id: subnet-0b8f231ff527cfe5f
-    name: utility-eu-west-2c
+    zone: ${azs[1]}
+  - cidr: ${public_subnet_cidrs[2]}
+    id: ${public_subnet_ids[2]}
+    name: utility-${azs[2]}
     type: Utility
-    zone: eu-west-2c
+    zone: ${azs[2]}
   topology:
     dns:
       type: None
