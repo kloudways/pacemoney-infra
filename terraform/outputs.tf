@@ -62,3 +62,8 @@ output "vpc_id" {
   description = "ID of the VPC"
   value       = aws_vpc.main.id
 }
+
+output "db_url_secret_arn" {
+  description = "ARN of the Secrets Manager secret storing the database connection URL"
+  value       = aws_secretsmanager_secret.db_url.arn
+}

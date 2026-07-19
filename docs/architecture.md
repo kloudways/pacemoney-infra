@@ -35,6 +35,15 @@ An S3 gateway VPC endpoint covers all three route tables, so S3 traffic (kops st
 - kops manages its own security groups (`masters.pacemoney.k8s.local`, `nodes.pacemoney.k8s.local`)
 - kops state stored in S3: `pacemoney-kops-state` (versioned, encrypted, public access blocked)
 
+### In-cluster components
+
+| Namespace | Component | Purpose |
+|-----------|-----------|---------|
+| `monitoring` | kube-prometheus-stack | Prometheus, Grafana, AlertManager, Prometheus Operator |
+| `external-secrets` | External Secrets Operator | Syncs AWS Secrets Manager secrets into Kubernetes Secrets |
+| `argocd` | ArgoCD | GitOps continuous delivery; watches `main` branch and syncs the pacemoney Helm release |
+| `pacemoney` | pacemoney app | The application itself, deployed by ArgoCD |
+
 ## RDS
 
 - Engine: PostgreSQL 16
@@ -43,6 +52,13 @@ An S3 gateway VPC endpoint covers all three route tables, so S3 traffic (kops st
 - Placed in isolated subnets, not publicly accessible
 - Security group: port 5432 allowed from `app_node_sg` and from the VPC CIDR (10.1.0.0/16) to cover kops-managed node security groups
 - Backup retention: 7 days
+
+## AWS Secrets Manager
+
+- One secret: `pacemoney/db-url` — the full PostgreSQL connection string for the RDS instance
+- Created and updated by Terraform on every apply; value is constructed from `db_username`, `db_password`, and the RDS endpoint
+- `recovery_window_in_days = 0` (immediate deletion on destroy, appropriate for a lab)
+- Accessed by kops worker nodes via the `pacemoney-kops-node` IAM role (no separate IAM user)
 
 ## ECR
 
@@ -94,5 +110,5 @@ The Kubernetes Service uses `type: LoadBalancer`. kops provisions a Classic ELB 
 | Role | Used by | Permissions |
 |------|---------|------------|
 | `pacemoney-kops-master` | kops control plane nodes | EC2:*, ELB:*, Route 53 change sets, S3:*, IAM instance profile management |
-| `pacemoney-kops-node` | kops worker nodes | EC2 Describe*, S3 read on kops state, ECR read-only |
+| `pacemoney-kops-node` | kops worker nodes | EC2 Describe*, S3 read on kops state, ECR read-only, Secrets Manager GetSecretValue on `pacemoney/db-url` |
 | `pacemoney-jenkins` | Jenkins EC2 | ECR power user, kops read-only (EC2/ELB/AS Describe*), S3 read/write on state buckets |
