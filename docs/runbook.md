@@ -48,7 +48,44 @@ kops replace -f terraform/kops/cluster.yaml --state s3://pacemoney-kops-state
 kops update cluster pacemoney.k8s.local --state s3://pacemoney-kops-state --yes
 ```
 
-### 4. Reconfigure Jenkins
+### 4. Post-cluster node configuration
+
+These two steps must run after `kops validate cluster` confirms the nodes are ready. Neither is automated — kops recreates the nodes and their IAM role on every cluster build.
+
+**Set IMDS hop limit to 2 on worker nodes** (required for ESO to reach EC2 instance metadata from inside pods):
+
+```bash
+for id in $(aws ec2 describe-instances --region eu-west-2 \
+  --filters "Name=tag:Name,Values=nodes-*pacemoney.k8s.local" \
+            "Name=instance-state-name,Values=running" \
+  --query "Reservations[].Instances[].InstanceId" --output text); do
+  aws ec2 modify-instance-metadata-options \
+    --instance-id $id \
+    --http-put-response-hop-limit 2 \
+    --http-tokens required \
+    --region eu-west-2
+done
+```
+
+**Add Secrets Manager policy to the kops node role** (kops creates `nodes.pacemoney.k8s.local` independently; the Terraform-managed role is not used by the nodes):
+
+```bash
+DB_URL_ARN=$(terraform output -raw db_url_secret_arn)
+
+aws iam put-role-policy \
+  --role-name nodes.pacemoney.k8s.local \
+  --policy-name pacemoney-secretsmanager \
+  --policy-document "{
+    \"Version\": \"2012-10-17\",
+    \"Statement\": [{
+      \"Effect\": \"Allow\",
+      \"Action\": [\"secretsmanager:GetSecretValue\", \"secretsmanager:DescribeSecret\"],
+      \"Resource\": \"${DB_URL_ARN}\"
+    }]
+  }" --region eu-west-2
+```
+
+### 5. Reconfigure Jenkins
 
 Open `http://jenkins.kloudways.com:8080` and complete the following:
 
@@ -57,7 +94,7 @@ Open `http://jenkins.kloudways.com:8080` and complete the following:
 - Add credential `github-token` (Username+Password: GitHub username as the username, a Personal Access Token with `repo` scope as the password — used by Jenkins to push image-tag commits)
 - Create a Pipeline job pointing at `https://github.com/kloudways/pacemoney-app.git`, branch `main`, Jenkinsfile from SCM
 
-### 5. Deploy the monitoring stack
+### 6. Deploy the monitoring stack
 
 This must be done before the first pipeline run so the `ServiceMonitor` CRD exists when Helm deploys the app.
 
@@ -85,7 +122,7 @@ ssh -i ~/.ssh/pacemoney ubuntu@<jenkins-ip> \
   "sudo -u jenkins rm -rf /var/lib/jenkins/.cache/helm/"
 ```
 
-### 6. Install External Secrets Operator
+### 7. Install External Secrets Operator
 
 ESO must be running before the first pipeline build so it can create the database Secret from AWS Secrets Manager.
 
@@ -97,7 +134,7 @@ helm upgrade --install external-secrets external-secrets/external-secrets \
   --namespace external-secrets --create-namespace
 ```
 
-### 7. Install ArgoCD
+### 8. Install ArgoCD
 
 ```bash
 helm repo add argo https://argoproj.github.io/argo-helm
@@ -116,7 +153,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d ; echo
 ```
 
-### 8. Bootstrap the ArgoCD Application
+### 9. Bootstrap the ArgoCD Application
 
 Apply the Application manifest once. After this, ArgoCD manages all subsequent deploys automatically.
 
@@ -133,13 +170,13 @@ ArgoCD will immediately attempt an initial sync. Wait for it to show `Healthy` a
 kubectl get application -n argocd pacemoney
 ```
 
-### 9. Deploy the application
+### 10. Deploy the application
 
 Trigger the Jenkins pipeline. Jenkins builds and pushes the image to ECR, then commits the new image tag to `values.yaml` on `main`. ArgoCD detects the change (within three minutes) and syncs the Helm release to the cluster.
 
 On first run after a fresh kops cluster, the Helm release creates a new `LoadBalancer` Service and kops provisions an ELB. This takes 2-3 minutes.
 
-### 10. Update the app ELB hostname
+### 11. Update the app ELB hostname
 
 After ArgoCD syncs and the application pods are ready:
 
@@ -250,6 +287,31 @@ FROM python:3.12-slim
 ```
 
 Pull the latest digest and rebuild.
+
+### ESO SecretStore shows `InvalidProviderConfig`
+
+Check the SecretStore events:
+
+```bash
+kubectl describe secretstore pacemoney-pacemoney-aws -n pacemoney | tail -20
+```
+
+**`no EC2 IMDS role found, context deadline exceeded`** — the IMDS hop limit is still 1. Run step 4 (post-cluster node configuration) to set it to 2.
+
+**`AccessDeniedException: secretsmanager:GetSecretValue`** — the Secrets Manager policy is missing from the kops node role. Run step 4 to add it.
+
+After fixing either issue, force the SecretStore and ExternalSecret to re-validate:
+
+```bash
+kubectl annotate secretstore pacemoney-pacemoney-aws -n pacemoney force-sync=$(date +%s) --overwrite
+kubectl annotate externalsecret pacemoney-pacemoney-db -n pacemoney force-sync=$(date +%s) --overwrite
+```
+
+If ESO pods were running when the IMDS fix was applied, restart them so they pick up fresh credentials:
+
+```bash
+kubectl rollout restart deployment -n external-secrets
+```
 
 ### kops delete cluster hangs on security groups or volumes
 
