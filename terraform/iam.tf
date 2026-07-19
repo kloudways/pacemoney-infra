@@ -105,6 +105,14 @@ resource "aws_iam_role_policy" "kops_node" {
         ]
         Resource = "*"
       },
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+        ]
+        Resource = aws_secretsmanager_secret.db_url.arn
+      },
     ]
   })
 }

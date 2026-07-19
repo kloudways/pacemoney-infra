@@ -54,7 +54,7 @@ Open `http://jenkins.kloudways.com:8080` and complete the following:
 
 - Install plugins: AnsiColor, Pipeline, Git, Credentials Binding, Workspace Cleanup
 - Add credential `sonar-token` (Secret text, the SonarCloud token)
-- Add credential `db-url` (Secret text, the full PostgreSQL connection string)
+- Add credential `github-token` (Username+Password: GitHub username as the username, a Personal Access Token with `repo` scope as the password — used by Jenkins to push image-tag commits)
 - Create a Pipeline job pointing at `https://github.com/kloudways/pacemoney-app.git`, branch `main`, Jenkinsfile from SCM
 
 ### 5. Deploy the monitoring stack
@@ -85,13 +85,63 @@ ssh -i ~/.ssh/pacemoney ubuntu@<jenkins-ip> \
   "sudo -u jenkins rm -rf /var/lib/jenkins/.cache/helm/"
 ```
 
-### 6. Deploy the application
+### 6. Install External Secrets Operator
 
-Trigger the Jenkins pipeline. On first run after a fresh kops cluster, the Helm deploy creates a new LoadBalancer Service and kops provisions an ELB. This takes 2-3 minutes.
+ESO must be running before the first pipeline build so it can create the database Secret from AWS Secrets Manager.
 
-### 7. Update the app ELB hostname
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
 
-After the pipeline's Helm Deploy stage succeeds:
+helm upgrade --install external-secrets external-secrets/external-secrets \
+  --namespace external-secrets --create-namespace
+```
+
+### 7. Install ArgoCD
+
+```bash
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+
+helm upgrade --install argocd argo/argo-cd \
+  --namespace argocd --create-namespace \
+  -f monitoring/argocd-values.yaml
+```
+
+Get the ArgoCD URL and initial admin password:
+
+```bash
+kubectl get svc -n argocd argocd-server
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d ; echo
+```
+
+### 8. Bootstrap the ArgoCD Application
+
+Apply the Application manifest once. After this, ArgoCD manages all subsequent deploys automatically.
+
+```bash
+kops export kubecfg pacemoney.k8s.local \
+  --state s3://pacemoney-kops-state --admin
+
+kubectl apply -f https://raw.githubusercontent.com/kloudways/pacemoney-app/main/deploy/argocd/application.yaml
+```
+
+ArgoCD will immediately attempt an initial sync. Wait for it to show `Healthy` and `Synced` in the UI or via CLI:
+
+```bash
+kubectl get application -n argocd pacemoney
+```
+
+### 9. Deploy the application
+
+Trigger the Jenkins pipeline. Jenkins builds and pushes the image to ECR, then commits the new image tag to `values.yaml` on `main`. ArgoCD detects the change (within three minutes) and syncs the Helm release to the cluster.
+
+On first run after a fresh kops cluster, the Helm release creates a new `LoadBalancer` Service and kops provisions an ELB. This takes 2-3 minutes.
+
+### 10. Update the app ELB hostname
+
+After ArgoCD syncs and the application pods are ready:
 
 ```bash
 kops export kubecfg pacemoney.k8s.local \
