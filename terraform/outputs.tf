@@ -18,15 +18,6 @@ output "ecr_repository_url" {
   value       = aws_ecr_repository.main.repository_url
 }
 
-output "kops_master_instance_profile_arn" {
-  description = "ARN of the IAM instance profile for Kops master nodes"
-  value       = aws_iam_instance_profile.kops_master.arn
-}
-
-output "kops_node_instance_profile_arn" {
-  description = "ARN of the IAM instance profile for Kops worker nodes"
-  value       = aws_iam_instance_profile.kops_node.arn
-}
 
 output "kops_state_bucket" {
   description = "Name of the S3 bucket used as the Kops state store"
