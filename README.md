@@ -97,7 +97,7 @@ terraform apply
 
 ## Secrets management
 
-The database connection string is stored in AWS Secrets Manager under `pacemoney/db-url`. Terraform constructs and writes this value on every `apply` from the RDS endpoint, username, password, and database name. The kops node IAM role is granted read access to this specific secret.
+The database connection string is stored in AWS Secrets Manager under `pacemoney/db-url`. Terraform constructs and writes this value on every `apply` from the RDS endpoint, username, password, and database name. The kops node IAM role is granted read access to this specific secret via `additionalPolicies` in `cluster.yaml.tpl` — the policy is applied automatically by kops on every `kops update cluster --yes`.
 
 In the cluster, the External Secrets Operator (ESO) reads the secret and creates a Kubernetes Secret in the `pacemoney` namespace. Application pods consume it via a `secretKeyRef` — no secret ever passes through Jenkins.
 
