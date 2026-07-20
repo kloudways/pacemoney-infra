@@ -31,6 +31,15 @@ spec:
       backupRetentionDays: 90
     memoryRequest: 100Mi
     name: events
+  additionalPolicies:
+    node: |
+      [
+        {
+          "Effect": "Allow",
+          "Action": ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"],
+          "Resource": "${db_url_secret_arn}"
+        }
+      ]
   iam:
     allowContainerRegistry: true
     legacy: false
