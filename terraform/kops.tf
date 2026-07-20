@@ -7,6 +7,7 @@ resource "local_file" "kops_cluster_config" {
     private_subnet_cidrs = aws_subnet.private[*].cidr_block
     public_subnet_ids    = aws_subnet.public[*].id
     public_subnet_cidrs  = aws_subnet.public[*].cidr_block
+    db_url_secret_arn    = aws_secretsmanager_secret.db_url.arn
   })
 
   filename = "${path.module}/kops/cluster.yaml"
