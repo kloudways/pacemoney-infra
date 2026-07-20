@@ -46,8 +46,7 @@ spec:
   kubelet:
     anonymousAuth: false
   kubernetesApiAccess:
-  - 0.0.0.0/0
-  - ::/0
+  - ${operator_ip_cidr}
   kubernetesVersion: 1.36.2
   networkCIDR: ${vpc_cidr}
   networkID: ${vpc_id}
@@ -55,8 +54,7 @@ spec:
     calico: {}
   nonMasqueradeCIDR: 100.64.0.0/10
   sshAccess:
-  - 0.0.0.0/0
-  - ::/0
+  - ${operator_ip_cidr}
   subnets:
   - cidr: ${private_subnet_cidrs[0]}
     id: ${private_subnet_ids[0]}
